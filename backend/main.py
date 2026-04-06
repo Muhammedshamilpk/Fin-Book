@@ -23,6 +23,7 @@ origins = [
     "http://localhost",
     "http://localhost:5173", # Vite
     "http://localhost:3000", # Nextjs / Vite alternative port
+    "https://fin-book-ten.vercel.app", # Vercel Frontend
 ]
 
 app.add_middleware(
