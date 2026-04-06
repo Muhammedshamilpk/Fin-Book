@@ -6,7 +6,11 @@ from routes import api_router
 
 # Create standard db tables if they don't exist
 # In a real app, use Alembic. Let's do a simple base metadata create for demo.
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+    print("Database tables verified.")
+except Exception as e:
+    print(f"\n[WARNING] Database connection failed during startup. Server will start, but DB-dependent routes will fail.\nError: {e}\n")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -34,3 +38,7 @@ app.include_router(api_router, prefix="/api/v1")
 @app.get("/health")
 def health_check():
     return {"status": "ok", "project": settings.PROJECT_NAME}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -32,7 +32,8 @@ def login(creds: LoginRequest, db: Session = Depends(get_db)):
             "password": creds.password
         })
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        # Surface exact error for debugging
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
         
     if not auth_response.session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Failed to retrieve session")
