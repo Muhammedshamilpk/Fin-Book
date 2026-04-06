@@ -23,6 +23,49 @@ class AuthResponse(BaseModel):
     access_token: str
     user: UserResponse
 
+@router.post("/signup", response_model=AuthResponse)
+def signup(creds: UserCreate, db: Session = Depends(get_db)):
+    supabase = get_supabase()
+    
+    # 1. Register with Supabase Auth
+    try:
+        auth_response = supabase.auth.sign_up({
+            "email": creds.email,
+            "password": creds.password
+        })
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+        
+    if not auth_response.user:
+        raise HTTPException(status_code=400, detail="Signup failed in Auth provider.")
+
+    # 2. Create User record in local database
+    # Handle both new signup and those whose auth account exists but DB does not.
+    db_user = db.query(User).filter(User.id == auth_response.user.id).first()
+    if not db_user:
+        db_user = User(
+            id=auth_response.user.id,
+            name=creds.name,
+            email=creds.email,
+            role=UserRole.viewer,
+            is_active=True
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+
+    if not auth_response.session:
+        # If email confirmation is enabled, we might not have a session yet.
+        raise HTTPException(
+            status_code=202, 
+            detail="Registration successful! Please check your email and confirm your account before logging in."
+        )
+
+    return {
+        "access_token": auth_response.session.access_token,
+        "user": db_user
+    }
+
 @router.post("/login", response_model=AuthResponse)
 def login(creds: LoginRequest, db: Session = Depends(get_db)):
     supabase = get_supabase()
@@ -38,9 +81,20 @@ def login(creds: LoginRequest, db: Session = Depends(get_db)):
     if not auth_response.session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Failed to retrieve session")
 
+    # SYNC STEP: If user exists in Auth but record is missing in DB (manual creation case)
     db_user = db.query(User).filter(User.id == auth_response.user.id).first()
     if not db_user:
-        raise HTTPException(status_code=404, detail="User record not found")
+        # Create the record automatically using Auth data
+        db_user = User(
+            id=auth_response.user.id,
+            name=auth_response.user.email.split('@')[0], # Fallback name
+            email=auth_response.user.email,
+            role=UserRole.viewer,
+            is_active=True
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
 
     return {
         "access_token": auth_response.session.access_token,
