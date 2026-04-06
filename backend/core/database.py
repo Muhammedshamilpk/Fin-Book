@@ -5,7 +5,18 @@ from supabase import create_client, Client
 
 # SQLAlchemy Setup
 # For SQLAlchemy to work with Supabase via connection string, we should use psycopg2 or similar
-engine = create_engine(settings.DATABASE_URL)
+# Handle Render's DATABASE_URL which might use the old 'postgres://' scheme
+database_url = settings.DATABASE_URL
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+engine = create_engine(
+    database_url,
+    pool_size=5,
+    max_overflow=10,
+    pool_pre_ping=True
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
