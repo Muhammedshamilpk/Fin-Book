@@ -18,6 +18,6 @@ class Record(Base):
     category = Column(String, index=True)
     date = Column(Date, nullable=False)
     notes = Column(Text, nullable=True)
-    user_id = Column(Uuid(as_uuid=True), ForeignKey("users.id"))
+    user_id = Column(Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
 
     user = relationship("User")

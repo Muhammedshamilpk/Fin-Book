@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from core.database import get_db, get_supabase
 from core.security import security, HTTPAuthorizationCredentials, get_current_user
 from models.user import User, UserRole
-from schemas.user import UserResponse
+from schemas.user import UserResponse, UserCreate
 
 router = APIRouter()
 
